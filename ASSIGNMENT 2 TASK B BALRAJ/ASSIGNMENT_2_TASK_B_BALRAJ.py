@@ -16,6 +16,10 @@ def checkWinner(p):
     return any(board[a] == board[b] == board[c] == p for a, b ,c in wins)
 
 board = [" " for _ in range(9)]
+    firstPlayer = rock_paper_scissos()
+
+    userSymbol = "X" if firstPlayer == "User" else "O"
+    aiSymbol = "O" if userSymbol == "X" else "X"
 turn = "X"
 
 while True:
