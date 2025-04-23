@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>007c7913-65e8-4421-b3ca-4d5fa343c7a5</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>ASSIGNMENT_2_TASK_B_BALRAJ.py</StartupFile>
+    <StartupFile>Balraj_QLearningAgent.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -21,7 +21,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="ASSIGNMENT_2_TASK_B_BALRAJ.py" />
+    <Compile Include="Balraj_QLearningAgent.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

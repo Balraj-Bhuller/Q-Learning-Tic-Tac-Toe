@@ -3,6 +3,7 @@
 # 13/04/2025: Creating a QLearningAgent Class to play against the Player
 # 13/04/2025: Restarting over with the knowledge I've ganed so far and make program more readable and work
 # 15/04/2025: Creating GUI for TIC TAC TOE and using knowledge I gained from previous program + combing it with other programs to create wokring QlearningAgent
+# 21/04/2025: Creating Value Agent to be able to compare it to QLearning Agent Later on
 
 import tkinter as tk
 import numpy as np
@@ -49,10 +50,58 @@ class RuleBasedAI(AI):
     @staticmethod
     def winningMove(board, move, turn):
         return board.getNextState(move, turn).winner() == turn
+    
+
+class VAgent(AI):
+    def __init__(self, turn, Value = None, epsilon = 0.2):
+        super().__init__(turn)
+        self.Value = Value if Value is not None else {}
+        self.epsilon = epsilon
+
+    def getMove(self, board):
+        if np.random.uniform() < self.epsilon:
+            return RandomAI.getMove(board)
+        
+        key = self.addKey(board, self.turn, self.Value)
+        
+        return self.selectMove(board, self.turn, self.Value)
+        
+    @staticmethod
+    def addKey(board, turn, Value):
+        key = board.makeKey(turn)
+        if key not in Value:
+            Value[key] = 0.5
+        
+        return key
+    
+    @staticmethod
+    def selectMove(board, turn, Value):
+        bestValue = -float('inf') if turn == 'X' else float('inf')
+        bestMoves = []
+        
+        for move in board.availableMoves():
+            nextBoard = board.getNextState(move, turn)
+           
+            if nextBoard.gameFinished():
+                reward = nextBoard.getReward()
+                val = reward
+                
+            else:
+                key = nextBoard.makeKey(turn == 'X' and 'O' or 'X')
+                val = Value.get(key, 0.5)
+                
+            if (turn == 'X' and val > bestValue) or (turn == 'O' and val < bestValue):
+                bestValue = val
+                bestMoves = [move]
+                
+            elif val == bestValue:
+                bestMoves.append(move)
+                
+        return bestMoves[np.random.choice(len(bestMoves))] if bestMoves else None
 
 
 class QAgent(AI):
-    def __init__(self, turn, qTable=None, epsilon=0.2):
+    def __init__(self, turn, qTable = None, epsilon  = 0.2):
         super().__init__(turn)
         self.qTable = qTable if qTable is not None else {}
         self.epsilon = epsilon
@@ -81,12 +130,12 @@ class QAgent(AI):
 
 # --- Board Class ---
 class Board:
-    def __init__(self, grid=None):
+    def __init__(self, grid = None):
         self.grid = np.full((3, 3), np.nan) if grid is None else grid
 
     def winner(self):
-        lines = [self.grid[i, :] for i in range(3)] + \
-                [self.grid[:, j] for j in range(3)] + \
+        lines = [self.grid[r, :] for r in range(3)] + \
+                [self.grid[:, c] for c in range(3)] + \
                 [np.diag(self.grid), np.diag(np.fliplr(self.grid))]
         for line in lines:
             if np.all(line == 1): return 'X'
@@ -100,7 +149,7 @@ class Board:
         self.grid[move] = 1 if turn == 'X' else 0
 
     def availableMoves(self):
-        return [(i, j) for i in range(3) for j in range(3) if np.isnan(self.grid[i][j])]
+        return [(r, c) for r in range(3) for c in range(3) if np.isnan(self.grid[r][c])]
 
     def getNextState(self, move, turn):
         new_board = copy.deepcopy(self)
@@ -108,20 +157,20 @@ class Board:
         return new_board
 
     def makeKey(self, turn):
-        filled = np.nan_to_num(self.grid, nan=9).astype(int).flatten()
+        filled = np.nan_to_num(self.grid, nan = 9).astype(int).flatten()
         return ''.join(map(str, filled)) + turn
 
     def getReward(self):
         winner = self.winner()
         if winner == 'X': return 1.0
         if winner == 'O': return -1.0
-        if not np.any(np.isnan(self.grid)): return 0.5
+        if not np.any(np.isnan(self.grid)): return 0.0
         return 0.0
 
 
 # --- Game GUI and Q-Learning Trainer ---
-class QLearningAgentAndGame:
-    def __init__(self, root=None, P1=None, P2=None, QLearn=None, qTable=None, alpha=0.3, gamma=0.9):
+class LearningAgentAndGame:
+    def __init__(self, root = None, P1 = None, P2 = None, QLearn = None, qTable = None, VLearn = False, Value = None, alpha = 0.3, gamma = 0.9):
         self.root = root
         self.P1 = P1
         self.P2 = P2
@@ -129,6 +178,8 @@ class QLearningAgentAndGame:
         self.opponent = P2
         self.board = Board()
         self.qTable = qTable if qTable is not None else {}
+        self._VLearn = VLearn
+        self.Value = Value if Value is not None else {}
         self.alpha = alpha
         self.gamma = gamma
         self._QLearn = QLearn if QLearn is not None else isinstance(P1, QAgent) or isinstance(P2, QAgent)
@@ -140,10 +191,10 @@ class QLearningAgentAndGame:
             frame.pack()
             for r in range(3):
                 for c in range(3):
-                    self.buttons[r][c] = tk.Button(frame, width=10, height=4, command=lambda r=r, c=c: self.onClick(r, c))
-                    self.buttons[r][c].grid(row=r, column=c)
+                    self.buttons[r][c] = tk.Button(frame, width = 10, height = 4, command = lambda r = r, c = c: self.onClick(r, c))
+                    self.buttons[r][c].grid(row = r, column = c)
                     
-            tk.Button(root, text="Reset", command=self.reset).pack()
+            tk.Button(root, text = "Reset", command = self.reset).pack()
 
     def syncQTable(self):
         if isinstance(self.P1, QAgent): self.P1.qTable = self.qTable
@@ -165,6 +216,8 @@ class QLearningAgentAndGame:
     def makeMove(self, move):
         if self._QLearn:
             self.updateQ(move)
+        elif self._VLearn:
+            self.updateV(move)
           
         self.board.placeTurn(move, self.currentPlayer.turn)
         
@@ -182,9 +235,10 @@ class QLearningAgentAndGame:
         self.currentPlayer, self.opponent = self.opponent, self.currentPlayer
 
     def announceWinner(self):
-        winner = self.board.winner()
-        result = f"Winner: {winner}" if winner else "Draw"
-        print(result)
+        if self.root:
+            winner = self.board.winner()
+            result = f"Winner: {winner}" if winner else "Draw"
+            print(result)
 
     def reset(self):
         self.board = Board()
@@ -206,29 +260,56 @@ class QLearningAgentAndGame:
 
     def updateQ(self, move):
         key = QAgent.addKey(self.board, self.currentPlayer.turn, self.qTable)
-        next_board = self.board.getNextState(move, self.currentPlayer.turn)
-        reward = next_board.getReward()
-        next_key = QAgent.addKey(next_board, self.opponent.turn, self.qTable)
+        nextBoard = self.board.getNextState(move, self.currentPlayer.turn)
+        reward = nextBoard.getReward()
+        nextKey = QAgent.addKey(nextBoard, self.opponent.turn, self.qTable)
 
         future = 0.0
-        if next_board.availableMoves():
-            next_Q = self.qTable[next_key]
-            future = min(next_Q.values()) if self.currentPlayer.turn == 'X' else max(next_Q.values())
+        if nextBoard.availableMoves():
+            nextQ = self.qTable[nextKey]
+            future = min(nextQ.values()) if self.currentPlayer.turn == 'X' else max(nextQ.values())
 
         self.qTable[key][move] += self.alpha * ((reward + self.gamma * future) - self.qTable[key][move])
-
+        
+    def updateV(self, move):
+        key = VAgent.addKey(self.board, self.currentPlayer.turn, self.Value)
+        nextBoard = self.board.getNextState(move, self.currentPlayer.turn)
+        reward = nextBoard.getReward()
+       
+        if nextBoard.gameFinished():
+            future = 0.0
+            
+        else:
+            futureValues = []
+            for opponentMove in nextBoard.availableMoves():
+                afterBoard = nextBoard.getNextState(opponentMove, self.opponent.turn)
+                afterKey = VAgent.addKey(afterBoard, self.currentPlayer.turn, self.Value)
+                futureValues.append(self.Value[afterKey])
+                
+            if self.currentPlayer.turn == 'X':
+                future = min(futureValues) if futureValues else 0.0
+                
+            else:
+                future = max(futureValues) if futureValues else 0.0
+                
+        currentValue = self.Value[key]
+        targetValue = reward + self.gamma * future
+        self.Value[key] += self.alpha * (targetValue - currentValue)
 
 # --- Mode Select: Train or Play ---
-mode = input("Choose mode: (1) Train AI, (2) Play vs AI: ").strip()
+mode = input("Choose mode: \n(1) Train Q-Learning Agent \n(2) Play Q-Learning Agent \n(3) Train Value Agent \n(4) Play Value Agent \nChoice: ").strip()
 
 if mode == "1":
     print("Training Q-Agent...")
     epsilon = 0.9
     episodes = 200000
-    P1 = QAgent(turn="X", epsilon=epsilon)
-    P2 = QAgent(turn="O", epsilon=epsilon)
-    game = QLearningAgentAndGame(P1=P1, P2=P2)
+    P1 = QAgent(turn = "X", epsilon = epsilon)
+    P2 = QAgent(turn = "O", epsilon = epsilon)
+    game = LearningAgentAndGame(P1 = P1, P2 = P2)
     for _ in range(episodes):
+        if _ % 10000 == 0:
+            print(f"Episode: {_}")
+            
         game.play()
         game.reset()
 
@@ -243,11 +324,43 @@ elif mode == "2":
     else:
         qTable = pickle.load(open("trained_qtable.p", "rb"))
         root = tk.Tk()
-        P1 = User(turn="X")
-        P2 = QAgent(turn="O", epsilon=0)
-        game = QLearningAgentAndGame(root, P1, P2, qTable=qTable)
+        P1 = User(turn = "X")
+        P2 = QAgent(turn = "O", epsilon = 0)
+        game = LearningAgentAndGame(root, P1, P2, qTable = qTable)
+        game.play()
+        root.mainloop()
+        
+elif mode == "3":
+    print("Training V-Agnet...")
+    epsilon = 0.9
+    episodes = 200000
+    Value = {}
+    P1 = VAgent(turn = "X", epsilon = epsilon, Value = Value)
+    P2 = VAgent(turn = "O", epsilon = epsilon, Value = Value)
+    game = LearningAgentAndGame(P1 = P1, P2 = P2, VLearn = True, Value = Value)
+    for _ in range(episodes):
+        if _ % 10000 == 0:
+            print(f"Episode {_}")
+            
+        game.play()
+        game.reset()
+        
+    filename = "trained_vtable.p"
+    pickle.dump(game.Value, open(filename, "wb"))
+    print(f"Training complete. V-table saved to {filename}")
+    
+elif mode == "4":
+    if not os.path.exists("trained_vtable.p"):
+        print("No trained V-table found. Train the agent first.")
+        
+    else:
+        Value = pickle.load(open("trained_vtable.p", "rb"))
+        root = tk.Tk()
+        P1 = User(turn = "X")
+        P2 = VAgent(turn = "O", epsilon = 0, Value = Value)
+        game = LearningAgentAndGame(root, P1, P2, VLearn = True, Value = Value)
         game.play()
         root.mainloop()
         
 else:
-    print("Invalid input. Choose 1 or 2.")
+    print("Invalid input. Chosse one from the Options give.")
