@@ -344,7 +344,7 @@ if mode == "1":
     # Self-play training for Q-learning agent
     print("Training Q-Agent...")
     epsilon = 0.9
-    episodes = 1000
+    episodes = 100000
     P1 = QAgent(turn = "X", epsilon = epsilon)
     P2 = QAgent(turn = "O", epsilon = epsilon)
     game = LearningAgentAndGame(P1 = P1, P2 = P2)
@@ -376,7 +376,7 @@ elif mode == "3":
     # Self-play training for Value agent
     print("Training V-Agent...")
     epsilon = 0.9
-    episodes = 1000
+    episodes = 100000
     Value = {}
     P1 = VAgent(turn = "X", epsilon = epsilon, Value = Value)
     P2 = VAgent(turn = "O", epsilon = epsilon, Value = Value)
