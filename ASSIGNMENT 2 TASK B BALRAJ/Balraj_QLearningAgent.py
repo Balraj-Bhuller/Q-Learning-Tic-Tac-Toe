@@ -58,7 +58,7 @@ class RuleBasedAI(AI):
 
 class VAgent(AI):
     # Value-based learning agent
-    def __init__(self, turn, Value=None, epsilon=0.2):
+    def __init__(self, turn, Value = None, epsilon = 0.2):
         super().__init__(turn)
         self.Value = Value if Value is not None else {}
         self.epsilon = epsilon
@@ -108,8 +108,8 @@ class VAgent(AI):
 
 
 class QAgent(AI):
-    # Q-Learning agent 
-    def __init__(self, turn, qTable=None, epsilon=0.2):
+    # Q-Learning agent  
+    def __init__(self, turn, qTable = None, epsilon = 0.2):
         super().__init__(turn)
         self.qTable = qTable if qTable is not None else {}
         self.epsilon = epsilon
@@ -142,7 +142,7 @@ class QAgent(AI):
 
 # --- Board Class ---
 class Board:
-    def __init__(self, grid=None):
+    def __init__(self, grid = None):
         # grid is a 3x3 numpy array of floats or None for empty
         self.grid = np.full((3, 3), np.nan) if grid is None else grid
 
@@ -176,7 +176,7 @@ class Board:
 
     def makeKey(self, turn):
         # Key for the current state (used in Q/V tables, no symmetry)
-        filled = np.nan_to_num(self.grid, nan=9).astype(int).flatten()
+        filled = np.nan_to_num(self.grid, nan = 9).astype(int).flatten()
         return ''.join(map(str, filled)) + turn
 
     def getReward(self):
@@ -190,7 +190,7 @@ class Board:
 
 # --- Game GUI and Q-Learning Trainer ---
 class LearningAgentAndGame:
-    def __init__(self, root=None, P1=None, P2=None, QLearn=None, qTable=None, VLearn=False, Value=None, alpha=0.3, gamma=0.9):
+    def __init__(self, root = None, P1 = None, P2 = None, QLearn = None, qTable = None, VLearn = False, Value = None, alpha = 0.3, gamma = 0.9):
         self.root = root
         self.P1 = P1
         self.P2 = P2
@@ -212,10 +212,10 @@ class LearningAgentAndGame:
             frame.pack()
             for r in range(3):
                 for c in range(3):
-                    self.buttons[r][c] = tk.Button(frame, width=10, height=4, command=lambda r=r, c=c: self.onClick(r, c))
-                    self.buttons[r][c].grid(row=r, column=c)
+                    self.buttons[r][c] = tk.Button(frame, width = 10, height = 4, command = lambda r = r, c = c: self.onClick(r, c))
+                    self.buttons[r][c].grid(row = r, column = c)
                     
-            tk.Button(root, text="Reset", command=self.reset).pack()
+            tk.Button(root, text = "Reset", command = self.reset).pack()
 
 
     def syncQTable(self):
@@ -345,9 +345,9 @@ if mode == "1":
     print("Training Q-Agent...")
     epsilon = 0.9
     episodes = 100000
-    P1 = QAgent(turn="X", epsilon=epsilon)
-    P2 = QAgent(turn="O", epsilon=epsilon)
-    game = LearningAgentAndGame(P1=P1, P2=P2)
+    P1 = QAgent(turn = "X", epsilon = epsilon)
+    P2 = QAgent(turn = "O", epsilon = epsilon)
+    game = LearningAgentAndGame(P1 = P1, P2 = P2)
     for i in range(episodes):
         if i % 10000 == 0:
             print(f"Episode: {i}")
@@ -366,8 +366,8 @@ elif mode == "2":
     else:
         qTable = pickle.load(open("trained_qtable.p", "rb"))
         root = tk.Tk()
-        P1 = User(turn="X")
-        P2 = QAgent(turn="O", epsilon=0)
+        P1 = User(turn = "X")
+        P2 = QAgent(turn = "O", epsilon = 0)
         game = LearningAgentAndGame(root, P1, P2, qTable=qTable)
         game.play()
         root.mainloop()
@@ -378,9 +378,9 @@ elif mode == "3":
     epsilon = 0.9
     episodes = 100000
     Value = {}
-    P1 = VAgent(turn="X", epsilon=epsilon, Value=Value)
-    P2 = VAgent(turn="O", epsilon=epsilon, Value=Value)
-    game = LearningAgentAndGame(P1=P1, P2=P2, VLearn=True, Value=Value)
+    P1 = VAgent(turn = "X", epsilon = epsilon, Value = Value)
+    P2 = VAgent(turn = "O", epsilon = epsilon, Value = Value)
+    game = LearningAgentAndGame(P1 = P1, P2 = P2, VLearn = True, Value = Value)
     for i in range(episodes):
         if i % 10000 == 0:
             print(f"Episode {i}")
@@ -399,9 +399,9 @@ elif mode == "4":
     else:
         Value = pickle.load(open("trained_vtable.p", "rb"))
         root = tk.Tk()
-        P1 = User(turn="X")
-        P2 = VAgent(turn="O", epsilon=0, Value=Value)
-        game = LearningAgentAndGame(root, P1, P2, VLearn=True, Value=Value)
+        P1 = User(turn = "X")
+        P2 = VAgent(turn = "O", epsilon = 0, Value = Value)
+        game = LearningAgentAndGame(root, P1, P2, VLearn = True, Value = Value)
         game.play()
         root.mainloop()
 
