@@ -338,13 +338,13 @@ class LearningAgentAndGame:
         self.Value[key] += self.alpha * (targetValue - currentValue)
 
 # --- Mode Select: Train or Play ---
-mode = input("Choose mode: \n(1) Train Q-Learning Agent \n(2) Play Q-Learning Agent \n(3) Train Value Agent \n(4) Play Value Agent \nChoice: ").strip()
+mode = input("Choose mode: \n(1) Train Q-Learning Agent \n(2) Play Q-Learning Agent \n(3) Train Value Agent \n(4) Play Value Agent \n(5) QAgent vs VAgent \nChoice: ").strip()
 
 if mode == "1":
     # Self-play training for Q-learning agent
     print("Training Q-Agent...")
     epsilon = 0.9
-    episodes = 100000
+    episodes = 1000
     P1 = QAgent(turn = "X", epsilon = epsilon)
     P2 = QAgent(turn = "O", epsilon = epsilon)
     game = LearningAgentAndGame(P1 = P1, P2 = P2)
@@ -376,7 +376,7 @@ elif mode == "3":
     # Self-play training for Value agent
     print("Training V-Agent...")
     epsilon = 0.9
-    episodes = 100000
+    episodes = 1000
     Value = {}
     P1 = VAgent(turn = "X", epsilon = epsilon, Value = Value)
     P2 = VAgent(turn = "O", epsilon = epsilon, Value = Value)
@@ -401,9 +401,45 @@ elif mode == "4":
         root = tk.Tk()
         P1 = User(turn = "X")
         P2 = VAgent(turn = "O", epsilon = 0, Value = Value)
-        game = LearningAgentAndGame(root, P1, P2, VLearn = True, Value = Value)
+        game = LearningAgentAndGame(root, P1, P2, VLearn = False, Value = Value)
         game.play()
         root.mainloop()
+
+
+elif mode == "5":
+    #Checking for trained tables.
+    if not os.path.exists("trained_vtable.p"):
+        print("No trained V-table found. Train the agent first.")
+        
+    if not os.path.exists("trained_qtable.p"):
+        print("No trained Q-table found. Train the agent first.")
+
+    else:
+        # Self-play for Q-learning agent vs Value agent using existing base
+        print("Using existing Q-Agent and V-Agent...")
+        episodes = 10000
+        qWins = 0
+        vWins = 0
+        draws = 0
+        Value = {}
+        P1 = QAgent(turn = "X", epsilon = 0)  # Use existing Q-Agent
+        P2 = VAgent(turn = "O", epsilon = 0, Value = Value)  # Use existing V-Agent
+        game = LearningAgentAndGame(P1 = P1, P2 = P2, QLearn = False, VLearn = False, Value = Value)  
+
+        for i in range(episodes):
+            if i % 1000 == 0:
+                print(f"Episode: {i}")
+            game.play()
+            winner = game.board.winner()
+            if winner == 'X':
+                qWins += 1
+            elif winner == 'O':
+                vWins += 1
+            else:
+                draws += 1
+            game.reset()
+
+        print(f"Results: Q-Agent wins: {qWins}, V-Agent wins: {vWins}, Draws: {draws}")
 
 else:
     print("Invalid input. Choose one from the options given.")
